@@ -1,0 +1,4 @@
+{
+    "input_dir": "raw_images",
+    "output_dir": "processed"
+}
