@@ -7,7 +7,7 @@ import json
 app = FastAPI(title="microservice")
 
 class User(BaseModel):
-    id: str
+    id: int
     name: str
     email: str
     is_active: bool = True
