@@ -1,4 +1,5 @@
 import os
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional,List,Any
@@ -6,6 +7,7 @@ import json
 app = FastAPI(title="microservice")
 
 class User(BaseModel):
+    id: str
     name: str
     email: str
     is_active: bool = True
@@ -34,13 +36,13 @@ def save_users(users: List[User]) -> None: #save/create json with user info
 def get_next_id(users: List[User]) -> int:
     if not users:
         return 0
-    return max(user.id + 1 for user in users)
+    return max(user.id+1 for user in users)
 
 @app.post('/users', response_model=User)
 async def create_user(user: User):
     users = load_users()
-    users.id = get_next_id(users)
-    user.append(user)
+    user.id = get_next_id(users)
+    users.append(user)
     save_users(users)
     return user
 
@@ -57,9 +59,38 @@ async def get_user(user_id: int) -> User:
     raise HTTPException(status_code=404, detail="User not found")
 
 @app.put('/users/{user_id}', response_model=User)
-async def update_user(user_id: int, user: User):
+async def update_user(user_id: int, updated_user: User):
+    users = load_users()
+    for idx, user in enumerate(users):
+        if user.id == user_id:
+            updated_user.id = user_id
+            users[idx] = updated_user
+            save_users(users)
+            return updated_user
+    raise HTTPException(status_code=404, detail="User not found")
+
+@app.delete('/users/{user_id}', response_model=User)
+async def delete_user(user_id: int):
     users = load_users()
     for user in users:
         if user.id == user_id:
-            user.name = user.name
+            users.remove(user)
+            save_users(users)
             return user
+
+    raise HTTPException(status_code=404, detail="User not found")
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy"
+    }
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)
+    if not os.path.exists(DATA_FILE):
+        os.makedirs(DATA_FILE)
+
+
+
